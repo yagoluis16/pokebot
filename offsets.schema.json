@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PokeBot offsets v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "entries"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "offsets.schema.json"
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 2
+    },
+    "entries": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/entry"
+      }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module",
+        "base_rva",
+        "steps",
+        "terminal",
+        "type",
+        "verified",
+        "note",
+        "source"
+      ],
+      "properties": {
+        "module": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!.*[\\\\/])(?=.*\\S).+$"
+        },
+        "base_rva": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "steps": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "maxItems": 16,
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "terminal": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "type": {
+          "enum": [
+            "int8",
+            "uint8",
+            "int16",
+            "uint16",
+            "int32",
+            "uint32",
+            "float32",
+            "float64"
+          ]
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "source": {
+          "enum": [
+            "assumed",
+            "verified_ce",
+            "reversed_disasm"
+          ]
+        },
+        "mask": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "shift": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 31
+        },
+        "deref": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verified": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "base_rva": {
+                "type": "integer"
+              },
+              "terminal": {
+                "type": "integer"
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "mask"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "int8",
+                  "uint8",
+                  "int16",
+                  "uint16",
+                  "int32",
+                  "uint32"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "dependentRequired": {
+        "shift": [
+          "mask"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CheatTable CheatEngineTableVersion="45">
+  <CheatEntries>
+    <CheatEntry>
+      <ID>1001</ID>
+      <Description>"Player X"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>"PokeAlliance_dx.exe"+3917F80</Address>
+      <Offsets>
+        <Offset>28</Offset>
+      </Offsets>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>1002</ID>
+      <Description>"Player Y"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>"PokeAlliance_dx.exe"+3917F80</Address>
+      <Offsets>
+        <Offset>2C</Offset>
+      </Offsets>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>1003</ID>
+      <Description>"Player Z (masked)"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>"PokeAlliance_dx.exe"+3917F80</Address>
+      <Offsets>
+        <Offset>30</Offset>
+      </Offsets>
+    </CheatEntry>
+  </CheatEntries>
+</CheatTable>

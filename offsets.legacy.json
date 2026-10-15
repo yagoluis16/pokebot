@@ -1,0 +1,227 @@
+{
+  "_meta": {
+    "client_path": "C:\\PokeAlliance Games\\PokeAlliance\\PokeAlliance_dx.exe",
+    "client_process": "PokeAlliance_dx.exe",
+    "target": "PokeAlliance (OTClientV8 fork, build 2026-09-15)",
+    "engine": "OTClientV8",
+    "scanned_on": null,
+    "client_build": "2026-09-15",
+    "notes": [
+      "All values start at 0x0 on purpose. memory.py treats any chain containing 0x0 as unresolved and returns None (fail-closed).",
+      "Calibrate with scanner.py + diagnostico.py against the running client BEFORE enabling any module.",
+      "Pointer chain format: [base_selector, step1, step2, ..., terminal_offset]. base_selector is a key into base_modules.",
+      "AOB entries are {'pattern': hex string with ?? wildcards, 'module': base selector or null, 'resolve': how to turn the hit into an address: 'direct' | 'relative32' | 'ptr'}.",
+      "Offsets are stored as hex STRINGS ('0x0') because JSON has no hex literal. memory.py parses them with int(value, 16); '0x0' / empty steps / null = unresolved = fail-closed."
+    ]
+  },
+
+  "base_modules": {
+    "client": {
+      "name": "PokeAlliance_dx.exe",
+      "resolve": "main_module",
+      "note": "Main executable module. Base acquired at runtime by pymem."
+    },
+    "lua_engine": {
+      "name": "lua51.dll",
+      "resolve": "module",
+      "optional": true,
+      "note": "Present in most OTClientV8 builds. Game objects reachable through the Lua registry if direct structs are unresolvable."
+    },
+    "kernel32": {
+      "name": "kernel32.dll",
+      "resolve": "module",
+      "note": "Used only for telemetry checks (QueryFullProcessImageNameW import), never for game state."
+    }
+  },
+
+  "player": {
+    "ptr_chain": {
+      "base": "client",
+      "steps": [],
+      "terminal": "0x0",
+      "aob_hint": null,
+      "note": "Static pointer to the local player object, e.g. g_game -> LocalPlayer. Fill via AOB scan for the vtable or the 'Player' type string, then verify the pointer resolves to a heap object with sane coordinates."
+    },
+    "struct": {
+      "size": "0x0",
+      "fields": {
+        "name":            { "offset": "0x0", "type": "string8",  "max_len": 32 },
+        "id":              { "offset": "0x0", "type": "u32" },
+        "hp":              { "offset": "0x0", "type": "u32" },
+        "hp_max":          { "offset": "0x0", "type": "u32" },
+        "mp":              { "offset": "0x0", "type": "u32" },
+        "mp_max":          { "offset": "0x0", "type": "u32" },
+        "level":           { "offset": "0x0", "type": "u32" },
+        "x":               { "offset": "0x0", "type": "u16" },
+        "y":               { "offset": "0x0", "type": "u16" },
+        "z":               { "offset": "0x0", "type": "u8"  },
+        "direction":       { "offset": "0x0", "type": "u8",  "enum": { "0": "north", "1": "east", "2": "south", "3": "west" } },
+        "cap":             { "offset": "0x0", "type": "u32" },
+        "soul":            { "offset": "0x0", "type": "u8",  "note": "In Pokemon forks often repurposed as a secondary resource; verify in diagnostico." },
+        "stamina":         { "offset": "0x0", "type": "u8" },
+        "is_online":       { "offset": "0x0", "type": "bool" },
+        "is_dead":         { "offset": "0x0", "type": "bool" }
+      }
+    }
+  },
+
+  "creature_list": {
+    "ptr_chain": {
+      "base": "client",
+      "steps": [],
+      "terminal": "0x0",
+      "note": "Pointer to the CreaturesMap / CreatureVector owned by g_game. OTClientV8 keeps an id->Creature map plus a vector of visible creatures."
+    },
+    "iter": {
+      "size": "0x0",
+      "id_stride": "0x0",
+      "fields": {
+        "creature_id":   { "offset": "0x0", "type": "u32" },
+        "creature_ptr":  { "offset": "0x0", "type": "ptr" },
+        "name":          { "offset": "0x0", "type": "string8", "max_len": 32 },
+        "hp_percent":    { "offset": "0x0", "type": "u8", "note": "OTClient stores 0-100 percent, not raw HP, for non-self creatures." },
+        "x":             { "offset": "0x0", "type": "u16" },
+        "y":             { "offset": "0x0", "type": "u16" },
+        "z":             { "offset": "0x0", "type": "u8" },
+        "is_npc":        { "offset": "0x0", "type": "bool" },
+        "is_player":     { "offset": "0x0", "type": "bool" },
+        "is_dead":       { "offset": "0x0", "type": "bool" },
+        "speed":         { "offset": "0x0", "type": "u32" }
+      }
+    },
+    "aob_hint": null,
+    "note": "Vector layout differs between OTClientV8 builds (map vs vector vs flat array). Calibrate iter.size and id_stride from a live creature count before trusting iteration."
+  },
+
+  "tile_map": {
+    "ptr_chain": {
+      "base": "client",
+      "steps": [],
+      "terminal": "0x0",
+      "note": "g_map -> tile storage. Needed only if cavebot wants walkability checks; waypoint walking itself works off player coords alone."
+    },
+    "struct": {
+      "size": "0x0",
+      "fields": {
+        "flags":       { "offset": "0x0", "type": "u32" },
+        "walkable":    { "offset": "0x0", "type": "bit", "bit": 0, "note": "Bit position unverified; calibrate against a known wall/floor pair." },
+        "has_creature":{ "offset": "0x0", "type": "bit", "bit": 1 }
+      }
+    }
+  },
+
+  "game_state": {
+    "ptr_chain": {
+      "base": "client",
+      "steps": [],
+      "terminal": "0x0",
+      "note": "g_game itself. exposes isOnline, isDead, isTrading, whether a modal dialog is open."
+    },
+    "struct": {
+      "size": "0x0",
+      "fields": {
+        "is_online":        { "offset": "0x0", "type": "bool" },
+        "is_dead":          { "offset": "0x0", "type": "bool" },
+        "is_trade_open":    { "offset": "0x0", "type": "bool" },
+        "dialog_open":      { "offset": "0x0", "type": "bool" },
+        "ping":             { "offset": "0x0", "type": "u32" },
+        "server_name":      { "offset": "0x0", "type": "string8", "max_len": 64 }
+      }
+    }
+  },
+
+  "minimap": {
+    "ptr_chain": { "base": "client", "steps": [], "terminal": "0x0", "note": "Optional. Used for position sanity checks only." },
+    "struct": {
+      "size": "0x0",
+      "fields": {
+        "center_x": { "offset": "0x0", "type": "u16" },
+        "center_y": { "offset": "0x0", "type": "u16" },
+        "center_z": { "offset": "0x0", "type": "u8"  }
+      }
+    }
+  },
+
+  "aob_signatures": {
+    "g_game_static": {
+      "module": "client",
+      "_comment": {
+        "origin": "Herdado de offsets.json/export.ps1; autor e fonte externa nao registrados; geracao pelo scanner nao comprovada",
+        "status": "ASSUMPTION — not validated in memory",
+        "intended_target": "ponteiro global g_game",
+        "evidence": "Nenhuma confirmacao CE ao vivo registrada; buscas do scanner usam o arquivo em disco"
+      },
+      "pattern": "48 8B 0D ?? ?? ?? ?? 48 85 C9 74 ?? E8 ?? ?? ?? ??",
+      "resolve": "relative32",
+      "note": "RIP-relative load of the global g_game pointer. Classic MSVC pattern; adjust displacement position once you see the first hit."
+    },
+    "g_map_static": {
+      "module": "client",
+      "_comment": {
+        "origin": "Herdado de offsets.json/export.ps1; autor e fonte externa nao registrados; geracao pelo scanner nao comprovada",
+        "status": "ASSUMPTION — not validated in memory",
+        "intended_target": "ponteiro global g_map",
+        "evidence": "Nenhuma confirmacao CE ao vivo registrada; buscas do scanner usam o arquivo em disco"
+      },
+      "pattern": "48 8B 0D ?? ?? ?? ?? 48 8B 01 FF 50 ?? 48 8B",
+      "resolve": "relative32",
+      "note": "Same shape as g_game; distinguish by the call target after the null check."
+    },
+    "creature_vector": {
+      "module": "client",
+      "_comment": {
+        "origin": "Herdado de offsets.json/export.ps1; autor e fonte externa nao registrados; geracao pelo scanner nao comprovada",
+        "status": "ASSUMPTION — not validated in memory",
+        "intended_target": "container/lista de criaturas",
+        "evidence": "Nenhuma confirmacao CE ao vivo registrada; buscas do scanner usam o arquivo em disco"
+      },
+      "pattern": "48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B 0D ?? ?? ?? ??",
+      "resolve": "relative32",
+      "note": "lea rcx, [rip+disp] feeding a container clear/fill call."
+    },
+    "local_player_vtable": {
+      "module": "client",
+      "_comment": {
+        "origin": "Herdado de offsets.json/export.ps1; autor e fonte externa nao registrados; geracao pelo scanner nao comprovada",
+        "status": "ASSUMPTION — not validated in memory",
+        "intended_target": "referencias de vtable de Player/LocalPlayer",
+        "evidence": "Nenhuma confirmacao CE ao vivo registrada; buscas do scanner usam o arquivo em disco"
+      },
+      "pattern": "48 89 05 ?? ?? ?? ?? 48 89 05 ?? ?? ?? ?? C3",
+      "resolve": "relative32",
+      "note": "vtable stores for Player/LocalPlayer objects. Use the vtable address to locate constructor calls and walk back to the object pointer."
+    },
+    "name_string_ref": {
+      "module": "client",
+      "_comment": {
+        "origin": "Herdado de offsets.json/export.ps1; autor e fonte externa nao registrados; geracao pelo scanner nao comprovada",
+        "status": "ASSUMPTION — not validated in memory",
+        "intended_target": "literal Player e referencias para investigar objetos Player",
+        "evidence": "Nenhuma confirmacao CE ao vivo registrada; buscas do scanner usam o arquivo em disco"
+      },
+      "pattern": "?? ?? ?? ?? 50 6C 61 79 65 72 00",
+      "resolve": "direct",
+      "note": "'Player\\0' literal in .rdata. Follow xrefs from IDA/Ghidra or a runtime scan to find the code that writes to the name field; the field offset falls out of that."
+    }
+  },
+
+  "telemetry_notes": {
+    "build_2026_09_15": {
+      "imports": ["NtQuerySystemInformation (dynamic, GetProcAddress)", "QueryFullProcessImageNameW (direct import)"],
+      "interpretation": "Enumerates running processes and image paths. Consistent with logging or a soft ban list, not with an injection gate. External RPM via pymem remains unaffected.",
+      "countermeasure": "None needed for read-only external access. Do not inject, do not create remote threads, do not load foreign DLLs into the client."
+    }
+  },
+
+  "safety": {
+    "max_read_bytes": 4096,
+    "max_string_len": 256,
+    "read_retries": 2,
+    "invalid_addr_behavior": "return_none",
+    "notes": [
+      "memory.py clamps every read to max_read_bytes and validates the pointer before dereferencing.",
+      "A zero step, a null pointer, or an address outside the module/heap range yields None, never a partial read.",
+      "Modules treat None as 'unknown' and go idle rather than acting on stale state."
+    ]
+  }
+}

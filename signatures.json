@@ -1,0 +1,69 @@
+{
+  "aob_signatures": {
+    "g_game_static": {
+      "module": "client",
+      "_comment": {
+        "origin": "Herdado de offsets.json/export.ps1; autor e fonte externa nao registrados; geracao pelo scanner nao comprovada",
+        "status": "ASSUMPTION — not validated in memory",
+        "intended_target": "ponteiro global g_game",
+        "evidence": "Nenhuma confirmacao CE ao vivo registrada; buscas do scanner usam o arquivo em disco"
+      },
+      "pattern": "48 8B 0D ?? ?? ?? ?? 48 85 C9 74 ?? E8 ?? ?? ?? ??",
+      "resolve": "relative32",
+      "note": "ASSUMPTION: assinatura anterior sem validacao. RIP-relative load of the global g_game pointer. Classic MSVC pattern; adjust displacement position once you see the first hit.",
+      "verified": false
+    },
+    "g_map_static": {
+      "module": "client",
+      "_comment": {
+        "origin": "Herdado de offsets.json/export.ps1; autor e fonte externa nao registrados; geracao pelo scanner nao comprovada",
+        "status": "ASSUMPTION — not validated in memory",
+        "intended_target": "ponteiro global g_map",
+        "evidence": "Nenhuma confirmacao CE ao vivo registrada; buscas do scanner usam o arquivo em disco"
+      },
+      "pattern": "48 8B 0D ?? ?? ?? ?? 48 8B 01 FF 50 ?? 48 8B",
+      "resolve": "relative32",
+      "note": "ASSUMPTION: assinatura anterior sem validacao. Same shape as g_game; distinguish by the call target after the null check.",
+      "verified": false
+    },
+    "creature_vector": {
+      "module": "client",
+      "_comment": {
+        "origin": "Herdado de offsets.json/export.ps1; autor e fonte externa nao registrados; geracao pelo scanner nao comprovada",
+        "status": "ASSUMPTION — not validated in memory",
+        "intended_target": "container/lista de criaturas",
+        "evidence": "Nenhuma confirmacao CE ao vivo registrada; buscas do scanner usam o arquivo em disco"
+      },
+      "pattern": "48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B 0D ?? ?? ?? ??",
+      "resolve": "relative32",
+      "note": "ASSUMPTION: assinatura anterior sem validacao. lea rcx, [rip+disp] feeding a container clear/fill call.",
+      "verified": false
+    },
+    "local_player_vtable": {
+      "module": "client",
+      "_comment": {
+        "origin": "Herdado de offsets.json/export.ps1; autor e fonte externa nao registrados; geracao pelo scanner nao comprovada",
+        "status": "ASSUMPTION — not validated in memory",
+        "intended_target": "referencias de vtable de Player/LocalPlayer",
+        "evidence": "Nenhuma confirmacao CE ao vivo registrada; buscas do scanner usam o arquivo em disco"
+      },
+      "pattern": "48 89 05 ?? ?? ?? ?? 48 89 05 ?? ?? ?? ?? C3",
+      "resolve": "relative32",
+      "note": "ASSUMPTION: assinatura anterior sem validacao. vtable stores for Player/LocalPlayer objects. Use the vtable address to locate constructor calls and walk back to the object pointer.",
+      "verified": false
+    },
+    "name_string_ref": {
+      "module": "client",
+      "_comment": {
+        "origin": "Herdado de offsets.json/export.ps1; autor e fonte externa nao registrados; geracao pelo scanner nao comprovada",
+        "status": "ASSUMPTION — not validated in memory",
+        "intended_target": "literal Player e referencias para investigar objetos Player",
+        "evidence": "Nenhuma confirmacao CE ao vivo registrada; buscas do scanner usam o arquivo em disco"
+      },
+      "pattern": "?? ?? ?? ?? 50 6C 61 79 65 72 00",
+      "resolve": "direct",
+      "note": "ASSUMPTION: assinatura anterior sem validacao. 'Player\\0' literal in .rdata. Follow xrefs from IDA/Ghidra or a runtime scan to find the code that writes to the name field; the field offset falls out of that.",
+      "verified": false
+    }
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "_meta": {
+    "version": 1,
+    "last_calibrated": null,
+    "notes": [
+      "Hotkeys are sent to the CLIENT WINDOW, not handled globally, unless 'global_hotkeys' is true.",
+      "SendInput uses scancodes (KEYEVENTF_SCANCODE) to survive clients that ignore virtual-key events.",
+      "Every module honors 'stop_on_death' and the shared stop event from context.py."
+    ]
+  },
+
+  "client": {
+    "window_title_pattern": "PokeAlliance",
+    "window_class": null,
+    "process_name": "PokeAlliance_dx.exe",
+    "focus_before_input": true,
+    "refocus_delay_ms": 120,
+    "click_delay_ms": 45,
+    "key_delay_ms": 30
+  },
+
+  "modules": {
+    "healer":      { "enabled": true,  "tick_ms": 400 },
+    "auto_food":   { "enabled": true,  "tick_ms": 1000 },
+    "cavebot":     { "enabled": false, "tick_ms": 200 },
+    "auto_target": { "enabled": false, "tick_ms": 300 },
+    "auto_catch":  { "enabled": false, "tick_ms": 250 },
+    "alarms":      { "enabled": true,  "tick_ms": 250 }
+  },
+
+  "healer": {
+    "hp_percent_threshold": 60,
+    "hp_above_percent": 85,
+    "mp_percent_threshold": 40,
+    "mp_above_percent": 90,
+    "hp_hotkey": "F1",
+    "mp_hotkey": "F2",
+    "delay_between_heals_ms": 650,
+    "panic_hp_percent": 25,
+    "panic_hotkey": "F3",
+    "panic_delay_ms": 250,
+    "note": "Hysteresis pair: heal below threshold, stop at above_threshold, prevents hotkey spam oscillation."
+  },
+
+  "auto_food": {
+    "interval_seconds": 60,
+    "jitter_seconds": 8,
+    "food_hotkey": "F4",
+    "pause_when_hp_below_percent": 30,
+    "note": "Jitter prevents a metronomic eating pattern. Pause while critical so healer gets the input bus."
+  },
+
+  "cavebot": {
+    "waypoints_file": "waypoints.json",
+    "walk_mode": "key_hold",
+    "key_hold_ms": 90,
+    "arrive_tolerance_tiles": 1,
+    "max_seconds_per_leg": 6,
+    "stuck_retry_count": 3,
+    "stuck_threshold_ms": 1500,
+    "pause_on_creature_within_tiles": 2,
+    "resume_after_combat_seconds": 4,
+    "walk_keys": { "north": "Up", "south": "Down", "east": "Right", "west": "Left" },
+    "note": "walk_mode 'key_hold' sends direction scancodes for key_hold_ms and re-checks position from memory. 'click_tile' needs calibrated tile_map and stays off until offsets land."
+  },
+
+  "auto_target": {
+    "attack_range_tiles": 7,
+    "attack_cooldown_ms": 900,
+    "attack_hotkey": "F5",
+    "target_mode": "attack_hotkey",
+    "prioritize": "lowest_hp_percent",
+    "ignore_players": true,
+    "ignore_npcs": true,
+    "ignore_dead": true,
+    "name_whitelist": [],
+    "name_blacklist": ["Gary"],
+    "min_level": 1,
+    "chase_enabled": false,
+    "note": "target_mode 'attack_hotkey' presses the client's attack key on a selected creature. 'click_creature' needs calibrated screen projection, added later."
+  },
+
+  "auto_catch": {
+    "enabled_creature_names": ["Pikachu", "Charmander", "Bulbasaur", "Squirtle"],
+    "catch_ball_hotkey": "F6",
+    "throw_count": 3,
+    "throw_delay_ms": 750,
+    "only_after_kill": true,
+    "stop_when_hp_above_percent": 60,
+    "note": "Waits for target death flag in memory, then fires the configured ball hotkey throw_count times with jittered delay."
+  },
+
+  "alarms": {
+    "check_interval_ms": 250,
+    "beep_on": ["death", "disconnect", "gm_detected"],
+    "beep_pattern": { "count": 5, "interval_ms": 180 },
+    "webhook_on": ["death", "disconnect", "gm_detected", "low_hp"],
+    "low_hp_percent": 20,
+    "gm_name_patterns": [".*[Gg]amemaster.*", ".*[Gg]od[Aa]ccess.*", ".*[Ss]erver.*[Aa]dmin.*"],
+    "gm_scan_radius_tiles": 12,
+    "disconnect_grace_seconds": 8,
+    "note": "disconnect grace avoids false positives during normal loading screens."
+  },
+
+  "notify": {
+    "webhook_enabled": false,
+    "webhook_url": "",
+    "webhook_username": "PokeAlliance Bot",
+    "mention_on_critical": false,
+    "mention_string": "",
+    "timeout_seconds": 8,
+    "rate_limit_per_minute": 20,
+    "note": "Left disabled by default. Fill the URL and flip enabled when you want Discord pings."
+  },
+
+  "hotkeys": {
+    "global_hotkeys": false,
+    "panic_stop": "F12",
+    "panic_stop_mode": "keyboard_hook",
+    "note": "panic_stop works even when the client doesn't have focus. F12 immediately sets the shared stop event and releases all held keys."
+  },
+
+  "runtime": {
+    "log_level": "INFO",
+    "log_file": "pokebot.log",
+    "log_max_bytes": 2097152,
+    "log_backup_count": 3,
+    "state_dump_seconds": 30,
+    "fail_closed_default": true,
+    "stop_on_death": true,
+    "stop_on_disconnect": true
+  },
+
+  "safety_limits": {
+    "max_threads": 8,
+    "input_bus_queue_max": 32,
+    "memory_read_interval_ms": 150,
+    "min_interval_between_inputs_ms": 25,
+    "notes": [
+      "input_bus_queue_max is a hard cap; overflow drops the request and logs, never blocks a module thread.",
+      "min_interval_between_inputs_ms is enforced inside inputbus so two modules can't stroke the client even if a priority bug slips through."
+    ]
+  }
+}

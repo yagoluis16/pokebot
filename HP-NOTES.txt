@@ -1,0 +1,17 @@
+HP dereference update
+
+Applied to C:\Users\yago\Desktop\pokebot with backups.
+49 unit tests passed. test-summary.txt contains pass/fail for every test.
+Live validator: FAIL; Windows could not open client process 26196. The earlier successful live reading used the previous HP representation, not this new version.
+
+Only player.hp changed in offsets.json; all other entries were compared and preserved.
+HP: base_rva=59908640 (0x3922220), steps=[], terminal=0, deref=true, type=int32.
+JSON numeric offsets remain decimal integers to preserve the schema contract.
+Resolver order: module + RVA; walk steps; add terminal; optional final pointer read; read scalar; mask/shift.
+Runtime validator offset_contract.py was updated alongside the JSON schema, rejecting non-boolean deref values.
+XYZ retain their calibrated steps=[0]. The new test_x_no_deref uses a direct-address fixture with steps=[]; actual XYZ still read their existing chain pointers and do not use final deref.
+Existing HP and position CLI tests were updated for the new representation/output.
+
+Technical note
+The final HP target is re-read on every resolve/read call. During reallocation the pointer may temporarily be null or a memory read may fail; treat that as unavailable, not HP=0, and retry. Pointer resolution and scalar reading are not atomic, so a reallocation between them can still produce a failed or stale reading. Process memory region information is cached separately; newly allocated readable pages may require refreshing that information/re-attaching if address validation rejects them.
+For stats at pointer + 4, this contract requires steps=[0], terminal=4, deref=false. With steps=[], terminal=4, deref=true the pointer is read at module + RVA + 4 instead.

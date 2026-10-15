@@ -1,0 +1,22 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyc
+
+# Logs e arquivos de execução
+*.log
+output.txt
+scanner_*.txt
+test-summary.txt
+
+# Backups e diffs locais
+*.zip
+*.diff
+hp-deref-backup-*/
+hp-max-backup-*/
+
+# Sistema / IDE
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini

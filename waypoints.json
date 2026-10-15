@@ -1,0 +1,32 @@
+{
+  "waypoints": [
+    {
+      "x": 32768,
+      "y": 32768,
+      "z": 7,
+      "name": "Start",
+      "action": "walk"
+    },
+    {
+      "x": 32800,
+      "y": 32768,
+      "z": 7,
+      "name": "East Path",
+      "action": "walk"
+    },
+    {
+      "x": 32800,
+      "y": 32800,
+      "z": 7,
+      "name": "South-East Corner",
+      "action": "walk"
+    },
+    {
+      "x": 32768,
+      "y": 32800,
+      "z": 7,
+      "name": "South Path",
+      "action": "walk"
+    }
+  ]
+}
