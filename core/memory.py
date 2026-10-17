@@ -55,6 +55,56 @@ WRITABLE_PAGE_PROTECTIONS = (
 
 kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 psapi = ctypes.WinDLL("psapi", use_last_error=True)
+user32 = ctypes.WinDLL("user32", use_last_error=True)
+WNDENUMPROC = ctypes.WINFUNCTYPE(wt.BOOL, wt.HWND, wt.LPARAM)
+user32.EnumWindows.argtypes = [WNDENUMPROC, wt.LPARAM]
+user32.EnumWindows.restype = wt.BOOL
+user32.IsWindowVisible.argtypes = [wt.HWND]
+user32.IsWindowVisible.restype = wt.BOOL
+user32.GetWindowTextLengthW.argtypes = [wt.HWND]
+user32.GetWindowTextLengthW.restype = ctypes.c_int
+user32.GetWindowTextW.argtypes = [wt.HWND, wt.LPWSTR, ctypes.c_int]
+user32.GetWindowTextW.restype = ctypes.c_int
+user32.GetWindowThreadProcessId.argtypes = [wt.HWND, ctypes.POINTER(wt.DWORD)]
+user32.GetWindowThreadProcessId.restype = wt.DWORD
+kernel32.QueryFullProcessImageNameW.argtypes = [wt.HANDLE, wt.DWORD, wt.LPWSTR, ctypes.POINTER(wt.DWORD)]
+kernel32.QueryFullProcessImageNameW.restype = wt.BOOL
+
+
+def _window_titles() -> dict[int, list[str]]:
+    """Visible top-level titles grouped by PID, without opening processes."""
+    titles = {}
+
+    @WNDENUMPROC
+    def visit(hwnd, _):
+        if user32.IsWindowVisible(hwnd):
+            size = user32.GetWindowTextLengthW(hwnd)
+            if size:
+                buf = ctypes.create_unicode_buffer(size + 1)
+                if user32.GetWindowTextW(hwnd, buf, size + 1):
+                    pid = wt.DWORD()
+                    user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+                    titles.setdefault(pid.value, []).append(buf.value)
+        return True
+
+    if not user32.EnumWindows(visit, 0):
+        raise ctypes.WinError(ctypes.get_last_error())
+    return titles
+
+
+def _process_path(pid: int) -> Optional[str]:
+    handle = kernel32.OpenProcess(0x1000, False, pid)
+    if not handle:
+        return None
+    try:
+        size = wt.DWORD(32768)
+        buf = ctypes.create_unicode_buffer(size.value)
+        if kernel32.QueryFullProcessImageNameW(handle, 0, buf, ctypes.byref(size)):
+            return buf.value
+        return None
+    finally:
+        kernel32.CloseHandle(handle)
+
 
 # Process Entry for Toolhelp32
 class PROCESSENTRY32W(ctypes.Structure):
@@ -191,7 +241,11 @@ class MemoryReader:
         "float64": ("<d", 8),
     }
 
-    def __init__(self, target_process: Union[str, int] = "PokeAlliance_dx.exe"):
+    def __init__(self, target_process: Union[str, int] = "PokeAlliance_dx.exe", *,
+                 fallback_names: Optional[List[str]] = None,
+                 window_title_pattern: Optional[str] = None) -> None:
+        self.fallback_names = list(fallback_names or [])
+        self.window_title_pattern = window_title_pattern
         self.target: Union[str, int] = target_process
         self.pid: Optional[int] = None
         self.handle: Optional[int] = None
@@ -211,6 +265,14 @@ class MemoryReader:
         self.detach()
 
     # -- Lifecycle & Process Management -------------------------------------
+    @staticmethod
+    def require_admin() -> bool:
+        """Retorna se o processo atual executa como Administrador."""
+        is_user_an_admin = ctypes.windll.shell32.IsUserAnAdmin
+        is_user_an_admin.argtypes = []
+        is_user_an_admin.restype = wt.BOOL
+        return bool(is_user_an_admin())
+
     def attach(self) -> bool:
         """Finds PID, opens process handle, detects arch and caches modules."""
         self.detach()
@@ -219,10 +281,25 @@ class MemoryReader:
         if isinstance(self.target, int):
             self.pid = self.target
         else:
-            self.pid = self._find_pid_by_name(str(self.target))
+            try:
+                self.pid = self._find_pid_by_name(str(self.target))
+                if not self.pid:
+                    self.pid = self._find_pid_by_candidates(self.fallback_names)
+                if not self.pid and self.window_title_pattern:
+                    self.pid = self._find_pid_by_window_title(self.window_title_pattern)
+                    if self.pid:
+                        log.info("Process discovered by window title: PID=%d pattern=%r "
+                                 "(possible renamed client; launcher not confirmed)",
+                                 self.pid, self.window_title_pattern)
+            except OSError as exc:
+                self.last_error = f"Process discovery failed: {exc}"
+                log.error(self.last_error)
+                return False
 
         if not self.pid:
-            self.last_error = f"Process not found: {self.target}"
+            self.last_error = (f"Process not found: target={self.target!r}, "
+                               f"fallback_names={self.fallback_names!r}, "
+                               f"window_title_pattern={self.window_title_pattern!r}")
             log.error(self.last_error)
             return False
 
@@ -233,6 +310,7 @@ class MemoryReader:
             | PROCESS_QUERY_INFORMATION
         )
         h_proc = kernel32.OpenProcess(desired_access, False, self.pid)
+        initial_error = ctypes.get_last_error() if not h_proc else 0
         if not h_proc:
             # Fallback to read-only access if write permission is rejected
             desired_access = PROCESS_VM_READ | PROCESS_QUERY_INFORMATION
@@ -240,7 +318,10 @@ class MemoryReader:
 
         if not h_proc:
             err = ctypes.get_last_error()
-            self.last_error = f"OpenProcess failed for PID {self.pid} (error code: {err})"
+            if err == 5 or initial_error == 5:
+                self.last_error = "acesso negado — execute o bot como Administrador"
+            else:
+                self.last_error = f"OpenProcess failed for PID {self.pid} (error code: {err})"
             log.error(self.last_error)
             return False
 
@@ -282,27 +363,62 @@ class MemoryReader:
         return self.handle is not None and self.main_module_base != 0
 
     # -- Internal Inspection Helpers ----------------------------------------
-    def _find_pid_by_name(self, name: str) -> Optional[int]:
-        target_name = name.lower().strip()
+    @staticmethod
+    def _process_rows() -> list[dict]:
         snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
-        if snapshot == -1:
-            return None
-
+        if snapshot in (None, 0, -1, ctypes.c_void_p(-1).value):
+            raise ctypes.WinError(ctypes.get_last_error())
+        rows = []
         entry = PROCESSENTRY32W()
-        entry.dwSize = ctypes.sizeof(PROCESSENTRY32W)
-
-        found_pid = None
+        entry.dwSize = ctypes.sizeof(entry)
         try:
             success = kernel32.Process32FirstW(snapshot, ctypes.byref(entry))
             while success:
-                if entry.szExeFile.lower() == target_name:
-                    found_pid = entry.th32ProcessID
-                    break
+                rows.append({"pid": int(entry.th32ProcessID), "name": entry.szExeFile})
                 success = kernel32.Process32NextW(snapshot, ctypes.byref(entry))
+            error = ctypes.get_last_error()
+            if error != 18:  # ERROR_NO_MORE_FILES
+                raise ctypes.WinError(error)
         finally:
             kernel32.CloseHandle(snapshot)
+        return rows
 
-        return found_pid
+    def _find_pid_by_name(self, name: str) -> Optional[int]:
+        name = name.strip().casefold()
+        return next((row["pid"] for row in self._process_rows()
+                     if row["name"].casefold() == name), None)
+
+    def _find_pid_by_candidates(self, candidates: list[str]) -> Optional[int]:
+        for name in candidates:
+            pid = self._find_pid_by_name(name)
+            if pid:
+                return pid
+        return None
+
+    def _find_pid_by_window_title(self, pattern: str) -> Optional[int]:
+        if not pattern.strip():
+            return None
+        pattern = pattern.casefold()
+        return next((pid for pid, titles in _window_titles().items()
+                     if any(pattern in title.casefold() for title in titles)), None)
+
+    @staticmethod
+    def list_candidate_processes(keyword: str) -> list[dict]:
+        """Match process names or visible top-level window titles, case-insensitively.
+
+        Protected/exited processes may have path=None. Enumeration errors raise
+        OSError rather than being misreported as an empty process list.
+        """
+        keyword = keyword.casefold()
+        titles = _window_titles()
+        result = []
+        for row in MemoryReader._process_rows():
+            windows = titles.get(row["pid"], [])
+            matches = [title for title in windows if keyword in title.casefold()]
+            if keyword in row["name"].casefold() or matches:
+                result.append({**row, "title": next(iter(matches or windows), ""),
+                               "path": _process_path(row["pid"])})
+        return result
 
     def _detect_architecture(self) -> None:
         """Determines if target process is 32-bit (WoW64) or native 64-bit."""
@@ -343,7 +459,7 @@ class MemoryReader:
         mod_count = cb_needed.value // ctypes.sizeof(ctypes.c_void_p)
         base_name_buf = ctypes.create_unicode_buffer(MAX_PATH)
 
-        for i in range(mod_count):
+        for i in range(min(mod_count, max_mods)):
             h_mod = h_mods[i]
             if not h_mod:
                 continue

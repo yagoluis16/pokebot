@@ -1,84 +1,145 @@
-# pokebot/modules/healer.py
-"""Healer module: HP/MP monitoring with hysteresis and panic mode."""
+"""Cura do player por hotkey, com cooldown independente da duração da tecla.
+
+Preserva Healer(ctx, bus, resolver) e as chaves usadas pela GUI.
+MP não é necessário nem consultado nesta versão de cura por HP.
+"""
 
 from __future__ import annotations
+
 import logging
+import math
+import time
+
 from modules.base import Module
 
 log = logging.getLogger("pokebot.modules.healer")
 
+_VK_MAP = {f"F{number}": 0x6F + number for number in range(1, 13)}
+_VK_MAP.update({str(number): ord(str(number)) for number in range(10)})
+
+
+def _resolve_vk(hotkey: str) -> int:
+    key = str(hotkey).strip().upper()
+    if key in _VK_MAP:
+        return _VK_MAP[key]
+    try:
+        code = int(key, 0)
+    except ValueError as exc:
+        raise ValueError(f"hotkey inválida: {hotkey!r}") from exc
+    if not 1 <= code <= 0xFE:
+        raise ValueError(f"VK fora do intervalo: {hotkey!r}")
+    return code
+
 
 class Healer(Module):
+    """Cura normal e de emergência usando a fila de input existente."""
+
     name = "healer"
     config_key = "healer"
 
     def __init__(self, ctx=None, bus=None, resolver=None):
         super().__init__(ctx, bus)
         self.resolver = resolver
-        self._last_hp_pct = 100
-        self._last_mp_pct = 100
-        self._hp_hotkey_vk = 0
-        self._mp_hotkey_vk = 0
-        self._panic_hotkey_vk = 0
-        self._load_hotkeys()
+        self.log = log
+        self._last_heal_ts = None
+        self._last_emergency_ts = None
+        self.heals_sent = 0
+        self.emergency_heals_sent = 0
+        self.last_hp = None
+        self.last_hp_max = None
+        self.last_pct = None
+        self.last_skip_reason = None
+        self._load_settings()
 
-    def _load_hotkeys(self):
-        from inputbus import InputBus
-        # Convert hotkey strings to VK codes
-        hk = {
-            "F1": 0x70, "F2": 0x71, "F3": 0x72, "F4": 0x73, "F5": 0x74,
-            "F6": 0x75, "F7": 0x76, "F8": 0x77, "F9": 0x78, "F10": 0x79,
-            "F11": 0x7A, "F12": 0x7B,
-        }
-        hp_hk = self.ctx.get("healer", "hp_hotkey", default="F1")
-        mp_hk = self.ctx.get("healer", "mp_hotkey", default="F2")
-        panic_hk = self.ctx.get("healer", "panic_hotkey", default="F3")
-        self._hp_hotkey_vk = hk.get(hp_hk.upper(), 0x70)
-        self._mp_hotkey_vk = hk.get(mp_hk.upper(), 0x71)
-        self._panic_hotkey_vk = hk.get(panic_hk.upper(), 0x72)
+    def _load_settings(self):
+        def setting(name, default, alias=None):
+            fallback = self.ctx.get("healer", alias, default=default) if alias else default
+            return self.ctx.get("healer", name, default=fallback)
+
+        self.hp_threshold_pct = float(setting("hp_percent_threshold", 60))
+        self.emergency_threshold_pct = float(setting("panic_hp_percent", 25, "emergency_threshold_pct"))
+        self.hotkey = setting("hp_hotkey", "F1", "hotkey")
+        self.emergency_hotkey = setting("panic_hotkey", "F3", "emergency_hotkey")
+        self.cooldown_ms = float(setting("cooldown_ms", 800, "delay_between_heals_ms"))
+        self.emergency_cooldown_ms = float(setting("emergency_cooldown_ms", 400))
+        self.hold_ms = float(setting("hold_ms", 50))
+        if not 0 <= self.emergency_threshold_pct <= self.hp_threshold_pct <= 100:
+            raise ValueError("thresholds inválidos: 0 <= emergência <= normal <= 100")
+        if any(not math.isfinite(value) or value < 0 for value in
+               (self.cooldown_ms, self.emergency_cooldown_ms, self.hold_ms)):
+            raise ValueError("cooldown e hold_ms devem ser finitos e não negativos")
+        self._vk_normal = _resolve_vk(self.hotkey)
+        self._vk_emergency = _resolve_vk(self.emergency_hotkey)
 
     def tick(self):
-        if not self.resolver:
+        self._load_settings()
+        self.last_hp = None
+        self.last_hp_max = None
+        self.last_pct = None
+        if self.resolver is None:
+            self.last_skip_reason = "resolver indisponível"
             return
-
-        # Read HP/MP from memory
         hp = self.resolver.read_field("player", "hp")
         hp_max = self.resolver.read_field("player", "hp_max")
-        mp = self.resolver.read_field("player", "mp")
-        mp_max = self.resolver.read_field("player", "mp_max")
-
-        if hp is None or hp_max is None or hp_max == 0:
+        self.last_hp = hp
+        self.last_hp_max = hp_max
+        if hp is None or hp_max is None:
+            self.last_skip_reason = f"leitura HP falhou (hp={hp!r}, hp_max={hp_max!r})"
+        elif hp_max <= 0 or hp < 0 or hp > hp_max:
+            self.last_skip_reason = f"HP inválido: {hp}/{hp_max}"
+        elif hp == 0:
+            self.last_pct = 0
+            self.last_skip_reason = "HP zerado"
+        else:
+            self.last_pct = hp * 100.0 / hp_max
+            self._heal_if_needed()
             return
-        if mp is None or mp_max is None or mp_max == 0:
+        self.log.debug(self.last_skip_reason)
+
+    def _heal_if_needed(self):
+        emergency = self.last_pct < self.emergency_threshold_pct
+        if not emergency and self.last_pct >= self.hp_threshold_pct:
+            self.last_skip_reason = "HP acima ou igual ao threshold"
             return
-
-        hp_pct = (hp * 100) // hp_max
-        mp_pct = (mp * 100) // mp_max
-
-        # Panic mode (highest priority)
-        panic_hp = self.ctx.get("healer", "panic_hp_percent", default=25)
-        if hp_pct <= panic_hp:
-            if self._last_hp_pct > panic_hp:
-                log.warning("HEALER PANIC: HP %d%% <= %d%%", hp_pct, panic_hp)
-            self.press(self._panic_hotkey_vk, hold_ms=self.ctx.get("healer", "panic_delay_ms", default=250))
-            self._last_hp_pct = hp_pct
-            self.ctx.inc_stat("heals")
+        now = time.monotonic()
+        previous = self._last_emergency_ts if emergency else self._last_heal_ts
+        cooldown = self.emergency_cooldown_ms if emergency else self.cooldown_ms
+        if previous is not None and (now - previous) * 1000 < cooldown:
+            self.last_skip_reason = "emergência em cooldown" if emergency else "cura em cooldown"
+            self.log.debug(self.last_skip_reason)
             return
+        code = self._vk_emergency if emergency else self._vk_normal
+        if not self.press(code, hold_ms=self.hold_ms, priority=1 if emergency else 5):
+            self.last_skip_reason = "fila de input recusou a cura"
+            self.log.debug(self.last_skip_reason)
+            return
+        self._last_heal_ts = now
+        if emergency:
+            self._last_emergency_ts = now
+            self.emergency_heals_sent += 1
+        else:
+            self.heals_sent += 1
+        self.last_skip_reason = None
+        self.ctx.inc_stat("heals")
+        self.log.log(
+            logging.WARNING if emergency else logging.INFO,
+            "%s: hp=%d/%d (%.1f%%) -> %s (enfileirado)",
+            "EMERGÊNCIA" if emergency else "curando",
+            self.last_hp, self.last_hp_max, self.last_pct,
+            self.emergency_hotkey if emergency else self.hotkey,
+        )
 
-        # Normal HP heal with hysteresis
-        hp_threshold = self.ctx.get("healer", "hp_percent_threshold", default=60)
-        hp_above = self.ctx.get("healer", "hp_above_percent", default=85)
-        if hp_pct <= hp_threshold and self._last_hp_pct < hp_above:
-            log.info("HEALER: HP %d%% <= %d%%, pressing heal", hp_pct, hp_threshold)
-            self.press(self._hp_hotkey_vk, hold_ms=self.ctx.get("healer", "delay_between_heals_ms", default=650))
-            self.ctx.inc_stat("heals")
-        self._last_hp_pct = hp_pct
-
-        # MP heal with hysteresis
-        mp_threshold = self.ctx.get("healer", "mp_percent_threshold", default=40)
-        mp_above = self.ctx.get("healer", "mp_above_percent", default=90)
-        if mp_pct <= mp_threshold and self._last_mp_pct < mp_above:
-            log.info("HEALER: MP %d%% <= %d%%, pressing mana", mp_pct, mp_threshold)
-            self.press(self._mp_hotkey_vk, hold_ms=self.ctx.get("healer", "delay_between_heals_ms", default=650))
-            self.ctx.inc_stat("mana_heals")
-        self._last_mp_pct = mp_pct
+    @property
+    def stats(self):
+        return {
+            "heals_sent": self.heals_sent,
+            "emergency_heals_sent": self.emergency_heals_sent,
+            "last_hp": self.last_hp,
+            "last_hp_max": self.last_hp_max,
+            "last_hp_pct": round(self.last_pct, 1) if self.last_pct is not None else None,
+            "hp_threshold_pct": self.hp_threshold_pct,
+            "emergency_threshold_pct": self.emergency_threshold_pct,
+            "hotkey": self.hotkey,
+            "emergency_hotkey": self.emergency_hotkey,
+            "last_skip_reason": self.last_skip_reason,
+        }

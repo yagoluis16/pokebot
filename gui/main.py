@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 from context import get_context, BotContext
 from engine import create_engine
 from navigator import Navigator, Waypoint
+from gui.pokemon_selector import PokemonHealerSelector
 
 log = logging.getLogger("pokebot.gui")
 
@@ -442,6 +443,9 @@ class MainWindow(QMainWindow):
     def _create_combat_tab(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
+        self.pokemon_healer_selector = PokemonHealerSelector(
+            self.ctx, w, pid_provider=lambda: self.resolver.proc.pid if self.resolver else None)
+        layout.addWidget(self.pokemon_healer_selector)
 
         # Healer settings
         h_group = QGroupBox("Healer")

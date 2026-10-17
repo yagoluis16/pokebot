@@ -14,25 +14,25 @@
     },
     "player.hp": {
       "module": "PokeAlliance_dx.exe",
-      "base_rva": 59908640,
-      "steps": [],
+      "base_rva": 59908704,
+      "steps": [0],
       "terminal": 0,
-      "deref": true,
+      "deref": false,
       "type": "int32",
       "verified": true,
       "source": "reversed_disasm",
-      "note": "Global pointer from disassembly at PokeAlliance_dx.exe+822FB1. mov [r8+rax], ebx with rdi=0. Target is base of stats array."
+      "note": "Validado por pointer scan em sessão 2026-10-16"
     },
     "player.hp_max": {
       "module": "PokeAlliance_dx.exe",
-      "base_rva": 59908640,
-      "steps": [],
+      "base_rva": 59908704,
+      "steps": [0],
       "terminal": 4,
       "type": "int32",
-      "deref": true,
+      "deref": false,
       "verified": true,
       "source": "reversed_disasm",
-      "note": "Stats array index 1. Same global pointer as player.hp, terminal 0x04."
+      "note": "Validado por pointer scan; mesmo ponteiro do player.hp, terminal +4"
     },
     "player.mp": {
       "module": "PokeAlliance_dx.exe",

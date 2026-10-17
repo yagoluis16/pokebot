@@ -20,3 +20,19 @@ hp-max-backup-*/
 .idea/
 Thumbs.db
 Desktop.ini
+
+# Dados locais de scans, telemetria e engenharia reversa de terceiros
+.pytest_cache/
+pka_extract/
+_reverse/
+.env
+.env.*
+!.env.example
+telemetry_*.json
+scan*.json
+chain_candidates.json
+slot-candidates-*.json
+pokemon_candidates.json
+*-output.txt
+*-console.txt
+backup_ponteiros/evidencias/

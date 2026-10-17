@@ -1,0 +1,357 @@
+{
+  "$schema": "offsets.schema.json",
+  "schema_version": 2,
+  "entries": {
+    "player.id": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint32",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "player.hp": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": 59908704,
+      "steps": [0],
+      "terminal": 0,
+      "deref": false,
+      "type": "int32",
+      "verified": true,
+      "source": "reversed_disasm",
+      "note": "Validado por pointer scan em sessão 2026-10-16"
+    },
+    "player.hp_max": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": 59908704,
+      "steps": [0],
+      "terminal": 4,
+      "type": "int32",
+      "deref": false,
+      "verified": true,
+      "source": "reversed_disasm",
+      "note": "Validado por pointer scan; mesmo ponteiro do player.hp, terminal +4"
+    },
+    "player.mp": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint32",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "player.mp_max": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint32",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "player.level": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint32",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "player.x": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": 59867008,
+      "steps": [
+        0
+      ],
+      "terminal": 40,
+      "type": "int32",
+      "verified": true,
+      "note": "CE pointer chain: read_ptr(module_base + base_rva) + terminal. User reports validation across client restarts.",
+      "source": "verified_ce"
+    },
+    "player.y": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": 59867008,
+      "steps": [
+        0
+      ],
+      "terminal": 44,
+      "type": "int32",
+      "verified": true,
+      "note": "CE pointer chain: read_ptr(module_base + base_rva) + terminal. User reports validation across client restarts.",
+      "source": "verified_ce"
+    },
+    "player.z": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": 59867008,
+      "steps": [
+        0
+      ],
+      "terminal": 48,
+      "type": "int32",
+      "verified": true,
+      "note": "CE pointer chain: read_ptr(module_base + base_rva) + terminal. User reports validation across client restarts.",
+      "source": "verified_ce",
+      "mask": 255,
+      "shift": 0
+    },
+    "player.direction": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "player.cap": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint32",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "player.soul": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "player.stamina": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "player.is_online": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "player.is_dead": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "creature_list.creature_id": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint32",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "creature_list.hp_percent": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "creature_list.x": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint16",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "creature_list.y": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint16",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "creature_list.z": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "creature_list.is_npc": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "creature_list.is_player": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "creature_list.is_dead": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "creature_list.speed": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint32",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "tile_map.flags": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint32",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "game_state.is_online": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "game_state.is_dead": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "game_state.is_trade_open": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "game_state.dialog_open": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "game_state.ping": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint32",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "minimap.center_x": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint16",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "minimap.center_y": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint16",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "minimap.center_z": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": null,
+      "steps": null,
+      "terminal": null,
+      "type": "uint8",
+      "verified": false,
+      "note": "unverified placeholder; ASSUMPTION: tipo herdado, sem validacao CE; offsets desconhecidos = null",
+      "source": "assumed"
+    },
+    "pokemon.hp_percent": {
+      "module": "PokeAlliance_dx.exe",
+      "base_rva": 59906888,
+      "steps": [],
+      "deref": true,
+      "terminal": 968,
+      "type": "int32",
+      "source": "verified_ce",
+      "verified": true,
+      "note": "Active/selected Pokemon HP percentage, not absolute HP. User confirmed damage/healing, switching 87 -> 100 -> 87, and persistence after client restart. Call at +62D35E passes address of global slot +3921B48; callee +62D040 dereferences it and writes a computed percentage at object+3C8. Re-read pointer on every access."
+    }
+  }
+}
